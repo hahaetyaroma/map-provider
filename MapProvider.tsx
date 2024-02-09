@@ -1,15 +1,19 @@
 import { Component, ReactNode, createContext, useContext } from "react"
-import { LeafletMouseEvent, Map } from "leaflet"
+import { LatLng, LeafletMouseEvent, Map } from "leaflet"
 
-export type MapType = {
+export type MapContextType = {
 	map: Map | null
 	setMap: (map: Map | null) => void
+	getRulerPoints: () => Array<LatLng>
+	setRulerPoints: (points: Array<LatLng>) => void
 	getMapClickPosition: () => { latitude: number; longitude: number } | null
 }
 
-const MapContext = createContext<MapType>({
+const MapContext = createContext<MapContextType>({
 	map: null,
 	setMap: () => {},
+	setRulerPoints: () => {},
+	getRulerPoints: () => [],
 	getMapClickPosition: () => null,
 })
 
@@ -19,11 +23,12 @@ type MapProviderProps = {
 
 interface MapProviderState {
 	map: Map | null
+	rulerPoints: Array<LatLng>
 	position: { latitude: number; longitude: number } | null
 }
 
 class MapProvider extends Component<MapProviderProps, MapProviderState> {
-	state = { map: null, position: null }
+	state = { map: null, position: null, rulerPoints: [] }
 
 	public setMap = (map: Map | null) => {
 		this.setState({ map })
@@ -34,6 +39,9 @@ class MapProvider extends Component<MapProviderProps, MapProviderState> {
 	}
 
 	public getMapClickPosition = () => this.state.position
+	public getRulerPoints = () => this.state.rulerPoints
+
+	private setRulerPoints = (points: Array<LatLng>) => this.setState({ rulerPoints: points })
 
 	private setMapClickPosition = (event: LeafletMouseEvent) =>
 		this.setState({ position: { latitude: event.latlng.lat, longitude: event.latlng.lng } })
@@ -43,7 +51,13 @@ class MapProvider extends Component<MapProviderProps, MapProviderState> {
 
 		return (
 			<MapContext.Provider
-				value={{ map: this.state.map, setMap: this.setMap, getMapClickPosition: this.getMapClickPosition }}
+				value={{
+					map: this.state.map,
+					setMap: this.setMap,
+					getMapClickPosition: this.getMapClickPosition,
+					setRulerPoints: this.setRulerPoints,
+					getRulerPoints: this.getRulerPoints,
+				}}
 			>
 				{children}
 			</MapContext.Provider>
@@ -51,6 +65,6 @@ class MapProvider extends Component<MapProviderProps, MapProviderState> {
 	}
 }
 
-const useMapContext = () => useContext(MapContext)
+const useMapOutside = (): Omit<MapContextType, "setMap" | "setRulerPoints"> => useContext(MapContext)
 
-export { MapProvider, MapContext, useMapContext }
+export { MapProvider, MapContext, useMapOutside }
